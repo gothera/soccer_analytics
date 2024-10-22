@@ -174,8 +174,8 @@ class HRNetPredictionTransform:
         x_prob, x = torch.max(torch.max(preds, dim=2)[0], dim=2)
         y_prob, y = torch.max(torch.max(preds, dim=3)[0], dim=2)
         conf = torch.min(x_prob, y_prob)
-        x = x*self.W/w
-        y = y*self.H/h
+        x = x*2
+        y = y*2
 
         # (B, N, 3)
         predictions = torch.stack([x, y, conf], dim=-1)[:, :-1, :]

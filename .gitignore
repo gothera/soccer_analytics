@@ -1,3 +1,7 @@
 /dataset/*
 /experiments/*
 /.venv/*
+/outputs/*
+/game.mp4
+/game_cuts
+/network.pth

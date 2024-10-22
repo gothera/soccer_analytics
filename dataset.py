@@ -28,7 +28,7 @@ def plot_image_tensor(image_tensor):
     image_tensor (numpy.ndarray): The image tensor to plot. It should have shape (540, 960, 3).
 
     """
-    plt.imshow(image_tensor)
+    plt.imshow(image_tensor.permute(1,2,0))
     plt.axis('off')  # Turn off axis labels and ticks
     plt.show()
 
@@ -39,7 +39,9 @@ def plot_heatmap(heatmap_tensor):
     Parameters:
     heatmap_tensor (numpy.ndarray): The heatmap tensor to plot. It should have shape (68, 120).
     """
-    plt.imshow(heatmap_tensor, cmap='viridis', aspect='auto')
+    heatmap = heatmap_tensor.detach().cpu().numpy()
+    heatmap = cv2.resize(heatmap, (960, 540))
+    plt.imshow(heatmap, cmap='viridis', aspect='auto')
     plt.show()
 
 def custom_collate(batch):
@@ -49,6 +51,37 @@ def custom_collate(batch):
     custom_collated = {'img_name': [sample['img_name'] for sample in batch]}
 
     return {**default_collated, **custom_collated}
+
+def plot_img_keypoints(img, heatmap):
+    # Assuming 'image' is your input image of shape (540, 960, 3)
+    # and 'heatmap' is your black-and-white heatmap of shape (1, 270, 480)
+
+    # Step 1: Remove the first dimension from the heatmap
+    heatmap = heatmap.squeeze().detach().cpu().numpy()
+
+    # Step 2: Resize the heatmap to match the size of the image (540, 960)
+    heatmap_resized = cv2.resize(heatmap, (960, 540))
+
+    # Step 3: Normalize the heatmap to range between 0 and 255
+    heatmap_normalized = cv2.normalize(heatmap_resized, None, 0, 255, cv2.NORM_MINMAX)
+
+    # Step 4: Convert heatmap to a 3-channel image (Grayscale to RGB)
+    heatmap_colored = cv2.applyColorMap(heatmap_normalized.astype(np.uint8), cv2.COLORMAP_JET)
+
+    img_transposed = img.astype(np.float32)
+    heatmap_colored = heatmap_colored.astype(np.float32)
+    print(f"Image shape: {img.shape}")
+    print(f"Heatmap shape: {heatmap_colored.shape}")
+    # print(img)
+    # Step 5: Overlay the heatmap on the original image
+    overlay = cv2.addWeighted(img_transposed, 0.5, heatmap_colored, 0.5, 0)
+    overlay = overlay.astype(np.uint8)
+
+    # Step 6: Display the result
+    plt.figure(figsize=(10, 6))
+    plt.imshow(cv2.cvtColor(overlay, cv2.COLOR_BGR2RGB))  # Convert from BGR to RGB for correct color display
+    plt.axis('off')
+    plt.show()
 
 
 class HRNetDataset(Dataset):
@@ -69,7 +102,7 @@ class HRNetDataset(Dataset):
         for fname in sorted(os.listdir(dataset_folder)):
             if 'info' not in fname:
                 annot_path = os.path.join(dataset_folder, fname)
-                print(annot_path)
+                # print(annot_path)
                 if annot_path.endswith('.json'):
                     img_path = annot_path.replace('.json', '.png')
                     if os.path.exists(img_path):
@@ -77,8 +110,6 @@ class HRNetDataset(Dataset):
                         self._img_paths.append(img_path)
                         self._annot_paths.append(annot_path)
                         no += 1
-                        if no >= 2:
-                            break
 
     def __getitem__(self, idx):
         image = cv2.imread(self._img_paths[idx], cv2.IMREAD_COLOR)
@@ -112,7 +143,7 @@ class HRNetDataset(Dataset):
 
 
 def get_loader(dataset_paths: List[str], data_params: DictConfig,
-               transform: Optional[Callable] = None, shuffle: bool = False)\
+               transform: Optional[Callable] = None, shuffle: bool = True)\
         -> DataLoader:
     datasets = []
     for dataset_path in dataset_paths:
@@ -139,15 +170,21 @@ def main(cfg: DictConfig):
     train_loader = get_loader(cfg.data.train, cfg.data_params, None, True)
     dl = iter(train_loader)
 
-    batch = next(dl)
-    img, keypoints, mask = batch['image'][0], batch['keypoints'][0].reshape(-1, cfg.data_params.num_keypoints, 3), batch['mask'][0]
-    print(img.shape, keypoints.shape, mask.shape)
+    # batch = next(dl)
+    # img, keypoints, mask = batch['image'][0], batch['keypoints'][0].reshape(-1, cfg.data_params.num_keypoints, 3), batch['mask'][0]
+    # print(img.shape, keypoints.shape, mask.shape)
 
-    heatmap = create_heatmaps(keypoints, 1.0)
-    print(heatmap[0].shape)
-    # plot_image_tensor(img)
-    print(keypoints[0][16], "da")
-    plot_heatmap(heatmap[0][16])
+    for batch in dl:
+        for idx in range(cfg.data_params.batch_size):
+            img, keypoints, mask = batch['image'][idx], batch['keypoints'][idx].reshape(-1, cfg.data_params.num_keypoints, 3), batch['mask'][idx]
+            # print(img.shape, keypoints.shape, mask.shape)
+            heatmaps = create_heatmaps(keypoints, 1.0)
+            heatmaps = torch.cat(
+                    [heatmaps, (1.0 - torch.max(heatmaps, dim=1, keepdim=True)[0])], 1)
+            maps = torch.sum(heatmaps[0][:-1], 0)
+            # plot_heatmap(maps)
+
+            plot_img_keypoints(img.detach().cpu().numpy(), maps)
 
 
 
