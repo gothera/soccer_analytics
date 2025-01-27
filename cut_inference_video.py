@@ -24,7 +24,7 @@ def cut_video(input_file, cuts, output_folder):
         
         # Set up VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_file, fourcc, fps, (960, 540))
+        out = cv2.VideoWriter(output_file, fourcc, fps, (1280, 720))
 
         # Set the video position to start_time
         cap.set(cv2.CAP_PROP_POS_MSEC, start_time * 1000)
@@ -33,7 +33,7 @@ def cut_video(input_file, cuts, output_folder):
             ret, frame = cap.read()
             if not ret or cap.get(cv2.CAP_PROP_POS_MSEC) > end_time * 1000:
                 break
-            frame = cv2.resize(frame, (960, 540))
+            frame = cv2.resize(frame, (1280, 720))
             out.write(frame)
 
         out.release()
@@ -42,12 +42,11 @@ def cut_video(input_file, cuts, output_folder):
     cap.release()
     cv2.destroyAllWindows()
 # Example usage
-input_file = "./game.mp4"
-output_folder = "./game_cuts"
+input_file = "./game2.mp4"
+output_folder = "./game_cuts5"
 
 cuts = {
-    52:68, 
-    72:90,
+    2:10
 }
 
 cut_video(input_file, cuts, output_folder)

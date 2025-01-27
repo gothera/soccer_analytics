@@ -5,3 +5,11 @@
 /game.mp4
 /game_cuts
 /network.pth
+/utils
+/datasets
+/reidentification
+/keypoints/experiments
+/keypoints/outputs
+/keypoints/best_yolo_keypoints.pt
+/ball
+/players
