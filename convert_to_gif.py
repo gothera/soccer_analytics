@@ -23,4 +23,4 @@ def convert_mp4_to_gif(input_path, output_path, resize_factor=0.5):
     resized_clip.close()
 
 # Example usage
-convert_mp4_to_gif("/Users/cosmincojocaru/playground/players/output_video.mp4", "output.gif")
+convert_mp4_to_gif("./tactical_camera.mp4", "tactical.gif")
