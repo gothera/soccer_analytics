@@ -7,10 +7,9 @@
 /network.pth
 /utils
 /datasets
-/reidentification
 /keypoints/experiments
 /keypoints/outputs
 /keypoints/best_yolo_keypoints.pt
-/ball
-/players
 /output_videos
+/model_weights
+/players/ByteTrack
