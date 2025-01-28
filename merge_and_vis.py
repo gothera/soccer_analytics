@@ -1,64 +1,57 @@
-import os
-import shutil
-from pathlib import Path
-import cv2
-import numpy as np
-import matplotlib.pyplot as plt
+from moviepy.editor import VideoFileClip, ColorClip, concatenate_videoclips
 
-def merge_datasets(base_dir, num_clips=14, output_dir="merged_dataset"):
+def merge_videos_with_transition(video_paths, output_path, transition_duration=1.0):
     """
-    Merge multiple YOLO format datasets into one.
+    Merge multiple MP4 videos with black frame transitions between them.
     
     Args:
-        base_dir (str): Base directory containing clip_X_annotations folders
-        num_clips (int): Number of clips to merge
-        output_dir (str): Output directory name
+        video_paths (list): List of paths to input video files
+        output_path (str): Path where the output video will be saved
+        transition_duration (float): Duration of black frame transition in seconds
     """
-    # Create output directory structure
-    output_path = Path(output_dir)
-    (output_path / "labels" / "train").mkdir(parents=True, exist_ok=True)
-    (output_path / "images" / "train").mkdir(parents=True, exist_ok=True)
+    # Load all video clips
+    video_clips = [VideoFileClip(path) for path in video_paths]
     
-    # Copy and rename files
-    frame_counter = 0
-    for clip_idx in range(num_clips):
-        clip_dir = Path(base_dir) / f"clip_{clip_idx}_annotations"
-        label_dir = clip_dir / "labels" / "train"
-        image_dir = Path(f"./extracted_clips/clip_{clip_idx}")
-        
-        # Process all txt files in the clip
-        for txt_file in sorted(label_dir.glob("*.txt")):
-            # Copy and rename label file
-            new_label_name = f"{frame_counter:06d}.txt"
-            shutil.copy2(
-                txt_file,
-                output_path / "labels" / "train" / new_label_name
-            )
-            
-            # Copy and rename corresponding image file
-            img_file = image_dir / f"{txt_file.stem}.jpg"  # Assuming jpg format
-            if img_file.exists():
-                new_img_name = f"{frame_counter:06d}.jpg"
-                shutil.copy2(
-                    img_file,
-                    output_path / "images" / "train" / new_img_name
-                )
-            
-            frame_counter += 1
+    # Create a black frame clip for transition
+    # Using the first video's dimensions for the black frame
+    width = video_clips[0].w
+    height = video_clips[0].h
+    black_clip = ColorClip(size=(width, height), 
+                          color=(0, 0, 0), 
+                          duration=transition_duration)
     
-    # Create data.yaml in output directory
-    yaml_content = """
-names:
-  0: ball
-path: .
-train: train.txt
-"""
-    with open(output_path / "data.yaml", "w") as f:
-        f.write(yaml_content.strip())
+    # Create final clip list with black frames between videos
+    final_clips = []
+    for i, clip in enumerate(video_clips):
+        final_clips.append(clip)
+        # Add black transition after each video except the last one
+        if i < len(video_clips) - 1:
+            final_clips.append(black_clip)
     
-    print(f"Merged dataset created with {frame_counter} frames")
+    # Concatenate all clips
+    final_video = concatenate_videoclips(final_clips)
+    
+    # Write the output video
+    final_video.write_videofile(output_path, 
+                              codec='libx264',
+                              audio_codec='aac')
+    
+    # Close all clips to free up resources
+    for clip in video_clips:
+        clip.close()
+    final_video.close()
 
-# Example usage:
+# Example usage
 if __name__ == "__main__":
-    # Merge datasets
-    merge_datasets("./Ball_Annotations-YOLOV8")
+    # List of input video paths
+    videos = [
+        "/Users/cosmincojocaru/playground/output_nb1_ball_1.mp4",
+        "/Users/cosmincojocaru/playground/output_nb1_ball_2.mp4",
+        "/Users/cosmincojocaru/playground/output_nb1_ball_3.mp4"
+    ]
+    
+    # Output video path
+    output = "merged_output.mp4"
+    
+    # Merge videos with 1-second black transitions
+    merge_videos_with_transition(videos, output, transition_duration=1.0)

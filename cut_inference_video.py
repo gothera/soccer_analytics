@@ -20,7 +20,7 @@ def cut_video(input_file, cuts, output_folder):
     print(width, height)
 
     for i, (start_time, end_time) in enumerate(cuts.items()):
-        output_file = os.path.join(output_folder, f"cut_{i+1}.mp4")
+        output_file = os.path.join(output_folder, f"cut_{i+3}.mp4")
         
         # Set up VideoWriter object
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
@@ -42,11 +42,11 @@ def cut_video(input_file, cuts, output_folder):
     cap.release()
     cv2.destroyAllWindows()
 # Example usage
-input_file = "./game2.mp4"
-output_folder = "./game_cuts5"
+input_file = "/Users/cosmincojocaru/playground/Jalen Green Makes Rockets History & Ties CAREER-HIGH 42 PTS (72.2 FG%) ｜ January 13, 2025.mp4"
+output_folder = "./"
 
 cuts = {
-    2:10
+    122:130
 }
 
 cut_video(input_file, cuts, output_folder)
